@@ -1,0 +1,558 @@
+package com.company;
+
+import java.util.*;
+
+public class Heuristic1 {
+    protected int numberOfDropBox;//Number of DropBox
+    protected int numberOfNodes;//Number of Nodes
+    protected double sum,minSum=0.0;//Variables to define Sum and MinSum i.e. cost
+    protected double [][]locationOfNodes;//Array to hold the address of the nodes
+    protected double [][]pathWayMatrix;//Array to hold the distance between the nodes
+    protected double towerRange;//Variable to hold the tower range
+    //Method to get the cost of the clusters
+    public double getSum(){
+        return sum;
+    }
+    //Method to get the minimum cost of the clusters
+    public double getMinSum(){
+        return minSum;
+    }
+    //Method to get the required values
+    public void getValues(){
+        Scanner scanner=new Scanner(System.in);
+        System.out.println("Enter the Number of DropBox:");
+        numberOfDropBox=scanner.nextInt();
+        System.out.println("Enter the Number of Nodes:");
+        numberOfNodes=scanner.nextInt();
+        locationOfNodes=new double[3][numberOfNodes+1];
+        System.out.println("Enter the Location Of Nodes:");
+        for(int i=1;i<=2;i++){
+            for(int j=1;j<=numberOfNodes;j++) {
+                locationOfNodes[i][j] =scanner.nextDouble();
+            }
+        }
+        System.out.println("Enter the PathWay Matrix:");
+        pathWayMatrix=new double[numberOfNodes+1][numberOfNodes+1];
+        for(int i=1;i<=numberOfNodes;i++){
+            for(int j=1;j<=numberOfNodes;j++){
+                pathWayMatrix[i][j]=scanner.nextDouble();
+            }
+        }
+    }
+    //Method to get the initial centers of the clusters
+    public int[] getTheInitialClusters(){
+        int numberOfCenters;
+        Scanner scanner=new Scanner(System.in);
+        System.out.println("Enter the Number of Clusters:");
+        numberOfCenters=scanner.nextInt();
+        int []initialCenters=new int[numberOfCenters+1];
+        Arrays.fill(initialCenters,0);
+        System.out.println("Enter the Initial Clusters:");
+        for(int i=1;i<=numberOfCenters;i++){
+            initialCenters[i]=scanner.nextInt();
+        }
+        return initialCenters;
+    }
+    //Method to assign the initial centers of the clusters
+    public  DTNNode[] assignTheInitialCenters(int []initialCenters){
+        int minIndex=0;
+        double cost=0;
+        sum=0.0;
+        //Array of DTN Nodes created here
+        DTNNode []dtnNode=new DTNNode[numberOfNodes+1];
+        for(int i=1;i<=numberOfNodes;i++){
+            dtnNode[i]=new DTNNode();
+        }
+        //Clustering done here
+        for (int i=1;i<=numberOfNodes;i++){
+            double MIN=Integer.MAX_VALUE;
+            for(int j=1;j<initialCenters.length;j++){
+                if(pathWayMatrix[i][initialCenters[j]]<MIN){
+                    MIN=pathWayMatrix[i][initialCenters[j]];
+                    cost=MIN;
+                    minIndex=initialCenters[j];
+                }
+            }
+            sum+=cost;//Adding the total cost of the cluster
+            dtnNode[i].setNodeNumber(i);//Setting up the required values to the object created
+            dtnNode[i].setClusterId(minIndex);
+            dtnNode[i].setDistanceFromMedoid(MIN);
+        }
+        return dtnNode;
+    }
+    //Method to display the clusters
+    public void displayClusters(DTNNode []clusters,int []initialCenters,String message){
+        System.out.println(message);
+        for(int i=0;i<message.length();i++){
+            System.out.print("*");
+        }
+        System.out.println(" ");
+        for(int i=1;i<initialCenters.length;i++){
+            if(initialCenters[i]==0)continue;
+            System.out.print(initialCenters[i]+"-> [");
+            for(int j=1;j<clusters.length;j++){
+                if(initialCenters[i]==clusters[j].getClusterId()){
+                    System.out.print(j+",");
+                }
+            }
+            System.out.println("\b]\n");
+        }
+    }
+    //Reassigning the clusters to check whether a low cost centers exists in the centers or not
+    public void kMedoidAlgorithm(DTNNode []clusters,int []initialCenters) {
+        //setTowerRange();
+        minSum=sum;
+        int []centers=new int[initialCenters.length];
+        int []finalCenters=new int[initialCenters.length];
+        int k=0;
+        //Copying the initial centers to centers array
+        for(int i:initialCenters){
+            centers[k++]=i;
+        }
+        //Creating new array of object of DTN nodes
+        DTNNode []dtnNodes=new DTNNode[numberOfNodes+1];
+        for(int i=1;i<=numberOfNodes;i++){
+            dtnNodes[i]=new DTNNode();
+        }
+        //Array to hold the minimum value of the nodes
+        DTNNode []dtnNodesMin=new DTNNode[numberOfNodes+1];
+        for(int i=1;i<=numberOfNodes;i++){
+            dtnNodesMin[i]=new DTNNode();
+        }
+        //code to reassign the centers and checking some low cost centers
+        for(int i=1;i<initialCenters.length;i++) {
+            //centers[i] = initialCenters[i];
+            for (int j = 1; j < clusters.length; j++) {
+                if (initialCenters[i] == clusters[j].getClusterId()) {
+                    //if(pathWayMatrix[initialCenters[i]][dtnNodes[j].getNodeNumber()]<towerRange) {
+                        centers[i] = clusters[j].getNodeNumber();
+                        dtnNodes = assignTheInitialCenters(centers);
+                        if (sum < minSum) {
+                            for (int m = 0; m < centers.length; m++) {
+                                finalCenters[m] = centers[m];
+                            }
+                            dtnNodesMin = dtnNodes;
+                            minSum = sum;
+                        }
+                    //}
+                }
+            }
+        }
+        displayClusters(dtnNodesMin, finalCenters, "After applying K Medoid Algorithm clusters are");
+        System.out.println("After applying K Medoid Algorithm cost of the clusters : "+getMinSum());
+        assignTowers(dtnNodesMin,finalCenters);
+    }
+    //Method to set the range of the tower
+    public void setTowerRange(){
+        Scanner scanner =new Scanner(System.in);
+        System.out.println("Enter the Tower Range: ");
+        towerRange=scanner.nextDouble();
+    }
+    //Method to get the range of the tower
+    public double getTowerRange(){
+        return towerRange;
+    }
+    //Method to Display the Position of Towers
+    public void displayTowers(int []towers){
+        for(int i=1;i<=towers.length-1;i++){
+            if(towers[i]!=0) {
+                System.out.println("Tower " +i+" is at "+ towers[i]);
+            }
+        }
+    }
+    //Method to assign the towers according to the range
+    public void assignTowers(DTNNode []dtnNodes,int []centers){
+        setTowerRange();//Function call to set the range of the tower
+        int []towers=new int[centers.length];//Array to hold the tower location
+        Arrays.fill(towers,0);
+        Arrays.sort(centers);
+        towers[1]=centers[1];//Assign the first location as MCS
+        //Place towers at the location where it can be placed based on the center of the node
+        for(int i=2;i<centers.length;i++){
+            for(int j=1;j<centers.length;j++) {
+                if (pathWayMatrix[towers[j]][centers[i]] <= getTowerRange() && towers[j] != 0) {
+                    towers[i] = centers[i];
+                    break;
+                }
+            }
+        }
+        //If the towers are not placed check whether other nodes in the group can place the tower or not
+        int k;
+        for(int j=2;j<centers.length;j++) {
+            for (int i = 1; i <dtnNodes.length; i++) {
+                if(towers[j]==0){
+                    for(k=1;k<centers.length-1;k++){
+                        if(towers[k]!=0&& towers[k+1]==0){
+                            break;
+                        }
+                    }
+                    if(centers[j]!=i && centers[j]==dtnNodes[i].getClusterId() && pathWayMatrix[towers[k]][i]<=getTowerRange() ){
+                        towers[j]=dtnNodes[i].getNodeNumber();//assigning the tower at proper location
+                    }
+
+                }
+            }
+        }
+        rearrangeTheClusters(dtnNodes,towers,centers);
+    }
+    //Method to assign the nodes where the towers are placed
+    public void rearrangeTheClusters(DTNNode []dtnNodes,int []towers,int []centers) {
+        int countZero=0;
+        for(int i=1;i<towers.length;i++){
+            if(towers[i]!=0){
+                countZero++;
+            }
+        }
+        if(countZero==1){
+            //find the minimum range of the towers so that al least two clusters can be there
+            double distance =0.0,minDistance=Integer.MAX_VALUE;
+            for(int i=2;i<centers.length;i++){
+                for(int j=1;j<dtnNodes.length;j++){
+                    if(centers[i]==dtnNodes[j].getClusterId()) {
+                        distance = pathWayMatrix[towers[1]][dtnNodes[j].getNodeNumber()];
+                        if(minDistance>distance){
+                            minDistance=distance;
+                        }
+                    }
+                }
+            }
+            System.out.println("Tower is of very low range for this location.\nTowers should be at least of range "+minDistance+" kms");
+        }else {
+            displayTowers(towers);
+            for (int i = 1; i < towers.length; i++) {
+                if (towers[i] != centers[i] && towers[i] != 0) {
+                    for (int j = 1; j < dtnNodes.length; j++) {
+                        if (dtnNodes[j].getClusterId() == centers[i]) {
+                            dtnNodes[j].setClusterId(towers[i]);//Moving the node to the group center where there is tower
+                        }
+                    }
+                }
+            }
+            reAssignTheNodes(dtnNodes, centers, towers);
+        }
+        int []clusters=new int[numberOfNodes+1];
+        for(int i=1;i<=numberOfNodes;i++){
+            clusters[i]=dtnNodes[i].getClusterId();
+        }
+        trajectory(towers,clusters);
+    }
+    public  void trajectory(int[] tower,int[] tempclusters)
+    {
+        int n=tempclusters.length-1;
+        int k=tower.length-1;
+        System.out.println("\nenter no. of mules");
+        Scanner scan=new Scanner(System.in);
+
+        int mules=scan.nextInt();
+        int[] alotted_mules=new int[k+1];
+
+        int divide=(int)Math.floor(mules/k);
+
+        //Finding cost of cluster
+        double[] cost=new double[k+1];
+
+        for(int i=1;i<=k;i++)
+        {
+            for(int j=1;j<=n;j++)
+            {
+                int pos=tower[i];
+                if(tempclusters[j]==pos && j!=pos)
+                {
+                    cost[i]+=pathWayMatrix[pos][j];
+                }
+            }
+        }
+
+
+   		/*for(int i=1;i<=k;i++)
+   		{
+   			System.out.print(cost[i]+" ");
+   		}*/
+
+        //finding number of nodes in each cluster
+        int[] nodes_in_cluster=new int[k+1];
+        for(int i=1;i<=k;i++)
+        {
+            for(int j=1;j<=n;j++)
+            {
+                if(tempclusters[j]==tower[i])
+                {
+                    nodes_in_cluster[i]++;
+                }
+            }
+        }
+
+        //finding highest cost cluster
+        double max=0;
+        int highest_cost_cluster=0;
+        for(int i=1;i<=k;i++)
+        {
+            if(cost[i]>max)
+            {
+                max=cost[i];
+                highest_cost_cluster=i;
+            }
+        }
+
+        //System.out.print(highest_cost_cluster);
+        int mules1=mules;
+
+
+        //Propotional mule distribution
+
+   		/*for(int i=1;i<=k;i++)
+   		{
+   			if(i!=highest_cost_cluster)
+	   		{
+	   			alotted_mules[i]=divide;
+	   			mules1-=divide;
+	   		}
+   		}
+   		alotted_mules[highest_cost_cluster]=mules1;*/
+
+        double sum_of_cost=0;
+        for(int i=1;i<=k;i++)
+        {
+            sum_of_cost+=cost[i];
+        }
+
+        double[] secendary_cost=new double[k+1];
+        double[] secendary_cost_temp=new double[k+1];
+
+        for(int i=1;i<=k;i++)
+        {
+            secendary_cost[i]=(cost[i]*mules)/sum_of_cost;
+            secendary_cost_temp[i]=secendary_cost[i];
+        }
+
+        //System.out.println(secendary_cost[1]);
+
+        double temp1=0;
+        for(int i=1;i<=k;i++)
+        {
+            for(int j=2;j<=(k-i);j++)
+            {
+                if(secendary_cost_temp[j-1]<secendary_cost_temp[j])
+                {
+                    temp1=secendary_cost_temp[j-1];
+                    secendary_cost_temp[j-1]=secendary_cost_temp[j];
+                    secendary_cost_temp[j]=temp1;
+                }
+            }
+        }
+
+        for(int i=1;i<=k;i++)
+        {
+            System.out.print(secendary_cost_temp[i]+" ");
+        }
+        System.out.println();
+        /*for(int i=1;i<=k;i++)
+        {
+        	System.out.print(secendary_cost_temp[i]);
+        }*/
+
+        for(int i=1;i<=k;i++)
+        {
+            if(secendary_cost_temp[i]>=1)
+            {
+                for(int j=1;j<=k;j++)
+                {
+                    if(secendary_cost_temp[i]==secendary_cost[j])
+                    {
+                        alotted_mules[j]=(int)Math.floor(secendary_cost[i]);
+                        mules1-=alotted_mules[j];
+                    }
+                }
+            }
+            else if(secendary_cost_temp[i]==0)
+            {
+                for(int j=1;j<=k;j++)
+                {
+                    if(secendary_cost_temp[i]==secendary_cost[j])
+                    {
+                        alotted_mules[j]=0;
+                        mules1-=alotted_mules[j];
+                    }
+                }
+            }
+            else
+            {
+                for(int j=1;j<=k;j++)
+                {
+                    if(secendary_cost_temp[i]==secendary_cost[j])
+                    {
+                        alotted_mules[j]=1;
+                        mules1-=alotted_mules[j];
+                    }
+                }
+            }
+        }
+        if(mules1>0)
+        {
+            alotted_mules[highest_cost_cluster]+=mules1;
+        }
+
+        System.out.println("\nPropotional mule distribution as");
+        for(int i=1;i<=k;i++)
+        {
+            System.out.println("Cluster "+i+ "= "+ alotted_mules[i]);
+        }
+        System.out.println();
+
+
+        //initial location of mules
+        int[] mule_location=new int[mules+1];
+        int[] initial_mule_location=new int[mules+1];
+        int j=1;
+
+        for(int i=1;i<=k;i++)
+        {
+            int x=alotted_mules[i];
+            while(x>0)
+            {
+                mule_location[j]=tower[i];
+                initial_mule_location[j]=tower[i];
+                x--;
+                j++;
+            }
+        }
+
+        System.out.println("Initial mules location");
+        for(int i=1;i<=mules;i++)
+        {
+            System.out.println("mule "+i+" -> "+mule_location[i]);
+        }
+        System.out.println();
+
+        //finding the trajectories of each mule
+        int x=n-k;
+        double min=99999.0;
+        int index=-1;
+        int[] visited=new int[n+1];
+
+        ArrayList<Queue<Integer>> path=new ArrayList<Queue<Integer>>(mules+1);
+        for(int i=0;i<=mules;i++)
+        {
+            Queue<Integer> temp=new LinkedList<Integer>();
+            path.add(temp);
+        }
+
+        for(int i=1;i<=mules;i++)
+        {
+            path.get(i).add(initial_mule_location[i]);
+        }
+        //System.out.println(path.size());
+
+        for(int i=1;i<=k;i++)
+        {
+            visited[tower[i]]=1;
+        }
+
+        while(x>0)
+        {
+            for(j=1;j<=mules;j++)
+            {
+                if(x<=0)
+                    break;
+
+                min=99999.0;
+                index=-1;
+
+                for(int i=1;i<=n;i++)
+                {
+                    if(i!=tempclusters[i] && tempclusters[i]==tempclusters[mule_location[j]] && visited[i]==0 && pathWayMatrix[mule_location[j]][i]<=min)
+                    {
+                        min=pathWayMatrix[mule_location[j]][i];
+                        index=i;
+                    }
+                }
+                if(index!=-1)
+                {
+                    mule_location[j]=index;
+                    //System.out.println(j);
+                    path.get(j).add(index);
+                    visited[index]=1;
+                    x--;
+                }
+            }
+
+        }
+
+        for(int i=1;i<=mules;i++)
+        {
+            path.get(i).add(initial_mule_location[i]);
+        }
+
+        System.out.println("Path of each mule");
+
+        for(int i=1;i<=mules;i++)
+        {
+            System.out.println(path.get(i));
+        }
+
+        System.out.println("\nEnter velocity(km/h) of DM");
+        int velocity=scan.nextInt();
+
+        int temp2=0,temp3=0;
+        double dist;
+        for(int i=0;i<path.size();i++)
+        {
+            if(path.get(i).size()>0)
+                temp2=path.get(i).remove();
+
+            dist=0;
+            while(path.get(i).size()>0)
+            {
+                temp3=path.get(i).remove();
+
+                dist+=pathWayMatrix[temp2][temp3];
+
+                temp2=temp3;
+            }
+            if(dist>max)
+            {
+                max=dist;
+                index=i;
+            }
+        }
+
+        System.out.println();
+        System.out.println("mule "+index+" having highest latency cost, hence overall latency of the scnerio is = "+(max/velocity)*60+" seconds\n");
+        //System.out.println(divide);
+
+    }
+    void reAssignTheNodes(DTNNode []dtnNodes,int []centers,int[] towers){
+        double distance=0.0,minDistance=Integer.MAX_VALUE;
+        int index=0;
+        for(int i=1;i<towers.length;i++){
+            if(towers[i]==0){
+                for(int j=1;j<dtnNodes.length;j++){
+                    if(centers[i]==dtnNodes[j].getClusterId()){
+                        for(int k=1;k<towers.length;k++) {
+                            if (towers[k] != 0 && k!=i) {
+                                distance = pathWayMatrix[towers[k]][j];
+                                if (minDistance > distance) {
+                                    minDistance = distance;
+                                    index = towers[k];
+                                }
+                            }
+                            dtnNodes[j].setClusterId(index);//Assigning the node which is not assigned any tower till now a better cluster according to the distance
+                        }
+                    }
+                }
+            }
+        }
+        displayClusters(dtnNodes,towers,"Clusters after the tower installed at the group centers");
+    }
+
+    //Main method to call the required functions
+    public static void main(String []args){
+        Heuristic1 heuristic1=new Heuristic1();
+        heuristic1.getValues();
+        int []initialCenters=heuristic1.getTheInitialClusters();
+        DTNNode []dtnNodes=heuristic1.assignTheInitialCenters(initialCenters);
+        heuristic1.displayClusters(dtnNodes,initialCenters,"Initial Clustering ");
+        System.out.println("Cost of the clusters : "+heuristic1.getSum()+"\n\n");
+        heuristic1.kMedoidAlgorithm(dtnNodes,initialCenters);
+    }
+}
