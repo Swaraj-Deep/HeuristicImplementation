@@ -1,0 +1,224 @@
+
+
+import java.util.*;
+import java.util.concurrent.ThreadLocalRandom;
+
+public class Unplanned {
+    protected int numberOfNodes;//Variable to hold the number of nodes
+    protected int numberOfDropBoxes;//Variable to hold the number of DropBoxes
+    protected double [][]locationOfNodes;//2-D array to hold the location of the nodes
+    protected double [][]pathWayMatrix;//2-D array to hold the distance of the nodes
+    protected int numberOfTowers;//Variable to hold the number of towers
+    //Method to get the required values of the Heuristic
+    public void getValues(){
+        Scanner scanner=new Scanner(System.in);
+        System.out.println("Enter the number of Drop Boxes:");
+        numberOfDropBoxes=scanner.nextInt();
+        System.out.println("Enter the number of DTN Nodes:");
+        numberOfNodes=scanner.nextInt();
+        locationOfNodes=new double[numberOfNodes+1][2];
+        System.out.println("Enter the location of Nodes:");
+        for(int i=1;i<=numberOfNodes;i++){
+            for(int j=1;j<2;j++){
+                locationOfNodes[i][j]=scanner.nextDouble();
+            }
+        }
+        pathWayMatrix=new double[numberOfNodes+1][numberOfNodes+1];
+        System.out.println("Enter the Pathway Matrix:");
+        for(int i=1;i<=numberOfNodes;i++){
+            for(int j=1;j<=numberOfNodes;j++){
+                pathWayMatrix[i][j]=scanner.nextDouble();
+            }
+        }
+    }
+    //Method to set the Location of the tower
+    public int mcsLocation() {
+        int randomNum = ThreadLocalRandom.current().nextInt(1, numberOfNodes + 1);
+        return  randomNum;//Returns the Random Tower Which is to be placed
+    }
+    //Method to set the number of towers
+    public  void setNumberOfTowers(){
+        Scanner scanner=new Scanner(System.in);
+        System.out.println("Enter the number of available Towers:");
+        numberOfTowers=scanner.nextInt();
+    }
+    //Method to place remaining Towers
+    public void placeRemainingTowers(int towerLocation){
+        setNumberOfTowers();//Set the Number of Towers
+        double min;
+        double []cost=new double[numberOfTowers+1];
+        cost[1]=Double.MAX_VALUE;
+        int minIndex=0;
+        int []towers=new int[numberOfTowers+1];
+        Arrays.fill(towers,0);
+        towers[1]=towerLocation;
+        for(int i=2;i<=numberOfTowers;i++){
+            min=Integer.MIN_VALUE;
+            for(int j=1;j<=numberOfNodes;j++){
+                //Checking whether any tower has greater distance from the MCS
+                if(pathWayMatrix[towers[1]][j]>min && pathWayMatrix[towers[1]][j]<cost[i-1]){
+                    min=pathWayMatrix[towers[1]][j];
+                    minIndex=j;
+                }
+            }
+            towers[i]=minIndex;//Place the towers according to the distance from the MCS
+            cost[i]=min;
+        }
+        displayTower(towers);
+        createClusters(towers);
+    }
+    //Method to create the Clusters Not like the K-Medoid Clustering
+    public void createClusters(int []towers){
+        int []clusters=new int[numberOfNodes+1];
+        int minIndex=0;
+        //Clustering done here
+        for (int i=1;i<=numberOfNodes;i++){
+            double MIN=Integer.MAX_VALUE;
+            for(int j=1;j<towers.length;j++){
+                if(pathWayMatrix[i][towers[j]]<MIN){
+                    MIN=pathWayMatrix[i][towers[j]];
+                    minIndex=towers[j];
+                }
+            }
+            clusters[i]=minIndex;//Clustering done here
+        }
+        dataMuleTrajectory(towers,clusters);
+    }
+
+    //Method to define the trajectory of the Data Mule
+    public void dataMuleTrajectory(int []centers,int []clusters){
+        int temp;
+        int []dataMuleDistribution=uniformDataMuleDistribution(centers);
+        System.out.println("Data Mule Trajectory");
+        for(int i=1;i<centers.length;i++){
+            int count=0;
+            int []arr=new int[numberOfNodes+1];
+            //Separate all the nodes in one clusters and count the number of nodes
+            for(int j=1;j<clusters.length;j++){
+                if(centers[i]==clusters[j]){
+                    arr[count]=j;
+                    count++;
+                }
+            }
+            int []sortedCluster=new int[count];
+            //Sort the clusters according to the distance from the group center
+            for(int m=0;m<count;m++) {
+                for (int k = 0; k < count; k++) {
+                    if (centers[i] != arr[k] && pathWayMatrix[centers[i]][arr[m]] < pathWayMatrix[centers[i]][arr[k]]) {
+                        temp = arr[k];
+                        arr[k] = arr[m];
+                        arr[m] = temp;
+                    }
+                }
+            }
+            //assign the values to the sorted clusters
+            for(int a=0;a<count;a++){
+                sortedCluster[a]=arr[a];
+            }
+            //Checking various cases
+            if(dataMuleDistribution[i]==1){
+                System.out.print("[");
+                for(int a:sortedCluster){
+                    System.out.print(a+" -> ");
+                }
+                System.out.print(" "+centers[i]+" ]\n");
+            }else if(dataMuleDistribution[i]>=count-1){
+                int extra=dataMuleDistribution[i]-count;
+                if(extra>0){
+                    System.out.println("Not all the Data Mules can be used. "+(extra+1)+" Data Mules are Extra.");
+                }
+                for(int a=0;a<count;a++){
+                    if(centers[i]!=sortedCluster[a]) {
+                        System.out.print("[");
+                        System.out.print(centers[i] + " -> " + sortedCluster[a] + " -> " + centers[i] + " ]\n");
+                    }
+                }
+            }else {
+                Queue<Integer> queue=new LinkedList<>();
+                int []visited=new int[count];
+                Arrays.fill(visited,0);
+                Queue<Integer> path=new LinkedList<>();
+                ((LinkedList<Integer>) path).add(centers[i]);
+                visited[0]=1;
+                for(int a=1;a<=dataMuleDistribution[i];a++){
+                    ((LinkedList<Integer>) queue).add(sortedCluster[a]);
+                    visited[a]=1;
+                }
+                for(int c=0;c<dataMuleDistribution[i];c++){
+                    path.add(((LinkedList<Integer>) queue).getFirst());
+                    double minDist=Integer.MAX_VALUE;
+                    int minIndex=0;
+                    int element=((LinkedList<Integer>) queue).getFirst();
+                    for(int a=dataMuleDistribution[i]+1;a<count;a++){
+                        if(pathWayMatrix[element][sortedCluster[a]]<minDist){
+                            minDist=pathWayMatrix[element][sortedCluster[a]];
+                            minIndex=a;
+                        }
+                    }
+                    ((LinkedList<Integer>) path).add(sortedCluster[minIndex]);
+                    visited[minIndex]=1;
+                    ((LinkedList<Integer>) queue).removeFirst();
+                    queue.add(sortedCluster[minIndex]);
+                    int s=0;
+                    for(int a=0;a<count;a++){
+                        if(visited[a]==1){
+                            s++;
+                        }
+                    }
+                    if(s==count){
+                        break;
+                    }
+                }
+                //Printing the path
+                System.out.print("\n[");
+                for(int a:path){
+                    System.out.print(a+" -> ");
+                }
+                System.out.print(centers[i]+" ]\n");
+                for(int a=0;a<queue.size();a++){
+                    for(int b=0;b<path.size();b++){
+                        if(((LinkedList<Integer>) queue).get(a)==((LinkedList<Integer>) path).get(b)){
+                            ((LinkedList<Integer>) queue).remove(a);
+                        }
+                    }
+                }
+                System.out.print("\n["+centers[i]+" -> ");
+                for(int a:queue){
+                    System.out.print(a+" -> ");
+                }
+                System.out.print(centers[i]+"]\n");
+            }
+        }
+    }
+    //Method to Uniformly Distribute the Data Mules In the Clusters
+    public int[]  uniformDataMuleDistribution(int []centers){
+        Scanner scan=new Scanner(System.in);
+        System.out.println("Enter the number of data Mules: ");
+        int numberOfDataMules=scan.nextInt();
+        int []dataMulesDistribution=new int[centers.length];
+        int sum=0;
+        Arrays.fill(dataMulesDistribution,0);
+        for(int i=1;i<centers.length-1;i++){
+            dataMulesDistribution[i]=numberOfDataMules/(centers.length-1);//Distribution Done here
+            sum+=dataMulesDistribution[i];
+        }
+        dataMulesDistribution[centers.length-1]=numberOfDataMules-sum;//The last cluster has the remaining Data Mules
+        return dataMulesDistribution;
+    }
+
+    //Method to Display the Towers
+    public void displayTower(int []towers){
+        System.out.println("Towers are at locations:");
+        for(int i=1;i<towers.length;i++){
+            System.out.println("Tower "+i+" is at "+towers[i]);
+        }
+    }
+    //Main Method To call all the required Methods
+    public static void main(String[] args) {
+        Unplanned unplanned=new Unplanned();
+        unplanned.getValues();
+        int towerLocation=unplanned.mcsLocation();
+        unplanned.placeRemainingTowers(towerLocation);
+    }
+
+}
