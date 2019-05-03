@@ -1,12 +1,9 @@
 package com.company;
-
 import java.util.*;
-
-public class Heuristic1 {
-    protected int numberOfDropBox;//Number of DropBox
+public class HeuristicTwo {
+	protected int numberOfDropBox;//Number of DropBox
     protected int numberOfNodes;//Number of Nodes
     protected double sum,minSum=0.0;//Variables to define Sum and MinSum i.e. cost
-    protected double [][]locationOfNodes;//Array to hold the address of the nodes
     protected double [][]pathWayMatrix;//Array to hold the distance between the nodes
     protected double towerRange;//Variable to hold the tower range
     //Method to get the cost of the clusters
@@ -24,13 +21,6 @@ public class Heuristic1 {
         numberOfDropBox=scanner.nextInt();
         System.out.println("Enter the Number of Nodes:");
         numberOfNodes=scanner.nextInt();
-        locationOfNodes=new double[3][numberOfNodes+1];
-        System.out.println("Enter the Location Of Nodes:");
-        for(int i=1;i<=2;i++){
-            for(int j=1;j<=numberOfNodes;j++) {
-                locationOfNodes[i][j] =scanner.nextDouble();
-            }
-        }
         System.out.println("Enter the PathWay Matrix:");
         pathWayMatrix=new double[numberOfNodes+1][numberOfNodes+1];
         for(int i=1;i<=numberOfNodes;i++){
@@ -204,7 +194,7 @@ public class Heuristic1 {
             }
         }
         if(countZero==1){
-            //find the minimum range of the towers so that al least two clusters can be there
+            //find the minimum range of the towers so that at least two clusters can be there
             double distance =0.0,minDistance=Integer.MAX_VALUE;
             for(int i=2;i<centers.length;i++){
                 for(int j=1;j<dtnNodes.length;j++){
@@ -298,7 +288,7 @@ public class Heuristic1 {
         int mules1=mules;
 
 
-        //Propotional mule distribution
+        //Proportional mule distribution
 
    		/*for(int i=1;i<=k;i++)
    		{
@@ -547,7 +537,7 @@ public class Heuristic1 {
 
     //Main method to call the required functions
     public static void main(String []args){
-        Heuristic1 heuristic1=new Heuristic1();
+        HeuristicTwo heuristic1=new HeuristicTwo();
         heuristic1.getValues();
         int []initialCenters=heuristic1.getTheInitialClusters();
         DTNNode []dtnNodes=heuristic1.assignTheInitialCenters(initialCenters);
